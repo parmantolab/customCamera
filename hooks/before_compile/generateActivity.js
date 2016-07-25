@@ -82,7 +82,7 @@ var updateAndroidManifest = function() {
                 $: {
                     "android:name": "CameraActivity",
                     "android:label": "CameraActivity",
-                    "android:screenOrientation": "landscape"
+                    "android:screenOrientation": "portrait"
                 }
             });
             var newXmlAndroidManifest = builder.buildObject(contentAndroidManifest);

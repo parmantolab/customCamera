@@ -7,6 +7,7 @@ import android.util.Base64;
 
 import org.apache.cordova.CallbackContext;
 import org.apache.cordova.CordovaPlugin;
+import org.apache.cordova.PluginResult;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -96,11 +97,17 @@ public class CameraLauncher extends CordovaPlugin {
       intent.putExtra("switchCamera", args.getBoolean(11));
 
             //9zai
-      intent.putExtra("targetWeight",args.getInt(12));
+      intent.putExtra("targetWidth",args.getInt(12));
       intent.putExtra("targetHeight",args.getInt(13));
+
+      intent.putExtra("zoom",args.getBoolean(14));
 
       cordova.startActivityForResult((CordovaPlugin) this, intent,
           CameraLauncher.REQUEST_CODE);
+
+      // PluginResult r = new PluginResult(PluginResult.Status.NO_RESULT);
+      // r.setKeepCallback(true);
+      // callbackContext.sendPluginResult(r);
 
       return true;
     }

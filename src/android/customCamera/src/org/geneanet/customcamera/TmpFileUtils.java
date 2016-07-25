@@ -92,6 +92,9 @@ public class TmpFileUtils {
           rotate = 90;
           break;
       }
+
+      Log.i("9zai", "ExifOrientation: " + rotate);
+
     } catch (IOException e) {
       Log.e("customCamera", "Can't determine EXIF orientation of :"+filePath+". Error message: "+e.getMessage());
     }

@@ -36,8 +36,10 @@
             switchCamera: true, // active or disable the switch camera button.
 
             //9zai
-            targetWeight:0,
-            targetHeight:0
+            targetWidth:0,
+            targetHeight:0,
+
+            zoom: true
         };
 
         for (var nameOption in defaultOptions) {
@@ -79,8 +81,9 @@
                 options.switchFlash,
                 options.defaultCamera,
                 options.switchCamera,
-                options.targetWeight,
-                options.targetHeight
+                options.targetWidth,
+                options.targetHeight,
+                options.zoom
             ]
         );
     };

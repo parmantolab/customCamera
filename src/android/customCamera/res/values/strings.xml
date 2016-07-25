@@ -1,18 +1,9 @@
-<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <resources>
-    <string name="app_name">TestCustomCamera</string>
-    <string name="hello_world">Hello world!</string>
-    <string name="action_settings">Settings</string>
-    <string name="title_activity_camera_activity">CameraActivityNative</string>
-    <string name="start_custom_camera">Start Custom Camera</string>
-    <string name="todo">TODO</string>
-    <string name="sss">sss</string>
-    <string name="miniature">Miniature</string>
-    <string name="capture">Photo</string>
-    <string name="BoutonMiniature">Ceci est le bouton permettant d\'afficher une miniature</string>
-	  <string name="descImage">Il s\'agit de l\'image de fond de l\'appareil photo</string>
-	  <string name="acceptePicture">Accepter Photo</string>
-	  <string name="declinePicture">Refuser Photo</string>
-	  <string name="zoomMin">-</string>
-	  <string name="zoomMax">+</string>
+  <string name="app_name">iMHere2.0</string>
+  <string name="launcher_name">@string/app_name</string>
+  <string name="activity_name">@string/launcher_name</string>
+  <string name="zoomMin">-</string>
+  <string name="zoomMax">+</string>
+  <string name="warningPortrait">Please Take in \nLandscape Mode</string>
 </resources>

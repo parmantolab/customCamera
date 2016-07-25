@@ -1,7 +1,9 @@
 package org.geneanet.customcamera;
 
+import android.content.Context;
 import android.app.Activity;
 import android.content.Intent;
+import android.content.pm.ActivityInfo;
 import android.content.res.Configuration;
 import android.content.res.Resources;
 import android.content.res.Resources.NotFoundException;
@@ -42,10 +44,12 @@ import android.widget.RelativeLayout;
 import android.widget.SeekBar;
 import android.widget.SeekBar.OnSeekBarChangeListener;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import org.geneanet.customcamera.CameraPreview;
 import org.geneanet.customcamera.ManagerCamera;
 import org.geneanet.customcamera.BitmapUtils;
+import org.geneanet.customcamera.SimpleOrientationListener;
 import org.geneanet.customcamera.TmpFileUtils;
 import org.xmlpull.v1.XmlPullParserException;
 
@@ -73,8 +77,10 @@ public class CameraActivity extends Activity {
   // Flag to save state of flash -> 0 : off, 1 : on, 2 : auto. 
   private int stateFlash = 0;
 
-  private int targetWeight = 0;// not resize if both 0
+  private int targetWidth = 0;// not resize if both 0
   private int targetHeight = 0;
+
+  private Boolean zoom = true;
 
   public static final int DEGREE_0 = 0;
   public static final int DEGREE_90 = 90;
@@ -91,6 +97,11 @@ public class CameraActivity extends Activity {
   public static final String NAME_FILE_BACKGROUND = "background";
   public static final String NAME_FILE_BACKGROUND_OTHER = "background-other";
   public static final String NAME_FILE_PICTURE_TAKEN = "picture-taken";
+
+  private SimpleOrientationListener mOrientationListener;
+  private boolean mDisableShutter = false;
+  private int mOrientationTaken;
+  private int mCurrentOrientation;
 
   /**
    * To get camera resource or stop this activity.
@@ -122,7 +133,7 @@ public class CameraActivity extends Activity {
     // The zoom bar progress
     final SeekBar zoomLevel = (SeekBar) findViewById(R.id.zoomLevel);
     Camera.Parameters paramsCamera = customCamera.getParameters();
-    if (paramsCamera.isZoomSupported()) {
+    if (paramsCamera.isZoomSupported() && zoom) {
       final int zoom = paramsCamera.getZoom();
       int maxZoom = paramsCamera.getMaxZoom();
   
@@ -167,7 +178,7 @@ public class CameraActivity extends Activity {
   @Override
   protected void onCreate(Bundle savedInstanceState) {
     super.onCreate(savedInstanceState);
-    Log.i("9zai","6.23");
+    Log.i("9zai", "6.23");
 
     /* Remove title bar */
     this.requestWindowFeature(Window.FEATURE_NO_TITLE);
@@ -180,7 +191,8 @@ public class CameraActivity extends Activity {
     opacity = this.getIntent().getBooleanExtra("opacity", true);
     stateFlash = this.getIntent().getIntExtra("defaultFlash", CameraActivity.FLASH_DISABLE);
     targetHeight = this.getIntent().getIntExtra("targetHeight",0);
-    targetWeight = this.getIntent().getIntExtra("targetWeight",0);
+    targetWidth = this.getIntent().getIntExtra("targetWidth",0);
+    zoom = this.getIntent().getBooleanExtra("zoom", true);
 
     if (opacity) {
       // Event on change opacity.
@@ -210,21 +222,21 @@ public class CameraActivity extends Activity {
     
     String backgroundColor = this.getIntent().getStringExtra("cameraBackgroundColor");
     this.setCameraBackgroundColor(backgroundColor);
-    this.setThumbAtSeekBar((SeekBar)findViewById(R.id.zoomLevel), backgroundColor);
-    this.setThumbAtSeekBar((SeekBar)findViewById(R.id.switchOpacity), backgroundColor);
+    this.setThumbAtSeekBar((SeekBar) findViewById(R.id.zoomLevel), backgroundColor);
+    this.setThumbAtSeekBar((SeekBar) findViewById(R.id.switchOpacity), backgroundColor);
     
-    imgIcon.setOnTouchListener(new View.OnTouchListener() { 
+    imgIcon.setOnTouchListener(new View.OnTouchListener() {
       @Override
       public boolean onTouch(View view, MotionEvent event) {
         switch (event.getAction()) {
           case MotionEvent.ACTION_DOWN:
             ((CameraActivity) currentActivity).setCameraBackgroundColor(
-                currentActivity.getIntent().getStringExtra("cameraBackgroundColorPressed"));
+                    currentActivity.getIntent().getStringExtra("cameraBackgroundColorPressed"));
             break;
           case MotionEvent.ACTION_UP:
             view.performClick();
             ((CameraActivity) currentActivity).setCameraBackgroundColor(
-                currentActivity.getIntent().getStringExtra("cameraBackgroundColor"));
+                    currentActivity.getIntent().getStringExtra("cameraBackgroundColor"));
             ((CameraActivity) currentActivity).startTakePhoto();
             break;
           default:
@@ -233,6 +245,43 @@ public class CameraActivity extends Activity {
         return true;
       }
     });
+
+
+    TextView orientWarning   = (TextView) findViewById(R.id.orientationWarning);
+    LinearLayout keepPhoto   = (LinearLayout) findViewById(R.id.keepPhoto);
+
+    orientWarning.setVisibility(View.GONE);
+    keepPhoto.setVisibility(View.GONE);
+
+    mDisableShutter = true;
+    /**
+     * Orientation listener
+     */
+    mOrientationListener = new SimpleOrientationListener(this) {
+
+      @Override
+      public void onSimpleOrientationChanged(int orientation) {
+        Log.i("9zai", "orientation: " + orientation);
+      }
+
+      @Override
+      public void onSimple4OrientationChanged(int orientation) {
+        Log.i("9zai", "orientation4Way: " + orientation);
+
+        mCurrentOrientation = orientation;
+        manageDisplayButtonsOrientation();
+      }
+    };
+
+    mOrientationListener.enable();
+  }
+
+  @Override
+  protected void onDestroy() {
+    super.onDestroy();
+
+    mOrientationListener.disable();
+
   }
 
   /** Method onStart. Handle the zoom level seekBar and the camera orientation. */
@@ -365,7 +414,7 @@ public class CameraActivity extends Activity {
   */
   @Override
   public boolean onKeyDown(int keyCode, KeyEvent event){
-    if(keyCode == KeyEvent.KEYCODE_VOLUME_DOWN|| keyCode == KeyEvent.KEYCODE_VOLUME_UP){
+    if((keyCode == KeyEvent.KEYCODE_VOLUME_DOWN|| keyCode == KeyEvent.KEYCODE_VOLUME_UP) && !mDisableShutter){
       startTakePhoto();
       return true;
     }
@@ -553,9 +602,13 @@ public class CameraActivity extends Activity {
     TextView textZoomMin = (TextView) findViewById(R.id.textZoomMin);
     TextView textZoomMax = (TextView) findViewById(R.id.textZoomMax);
     SeekBar zoomLevel = (SeekBar) findViewById(R.id.zoomLevel);
+
+    if (!zoom) { displayStatus = View.GONE; }
+
     textZoomMin.setVisibility(displayStatus);
     textZoomMax.setVisibility(displayStatus);
     zoomLevel.setVisibility(displayStatus);
+
   }
   
   /**
@@ -602,6 +655,7 @@ public class CameraActivity extends Activity {
     ImageButton photo        = (ImageButton) findViewById(R.id.capture);
     ImageButton switchCamera = (ImageButton) findViewById(R.id.switchCamera);
     SeekBar switchOpacity    = (SeekBar) findViewById(R.id.switchOpacity);
+    ImageView background     = (ImageView) findViewById(R.id.background);
     
     LayoutParams paramsLayoutMiniature = (LinearLayout.LayoutParams) miniature.getLayoutParams();
     Camera.Parameters paramsCamera = customCamera.getParameters();
@@ -620,7 +674,8 @@ public class CameraActivity extends Activity {
       displayZoomLevel(View.GONE);
       flash.setVisibility(View.GONE);
       switchCamera.setVisibility(View.GONE);
-      
+      background.setVisibility(View.GONE);
+
       ((LinearLayout.LayoutParams) paramsLayoutMiniature).gravity = Gravity.TOP;
       miniature.setLayoutParams(paramsLayoutMiniature);
       
@@ -632,6 +687,8 @@ public class CameraActivity extends Activity {
       // Show/hide elements when a photo is not taken
       keepPhoto.setVisibility(View.GONE);
       photo.setVisibility(View.VISIBLE);
+      background.setVisibility(View.VISIBLE);
+
       if (paramsCamera.isZoomSupported()) {
         displayZoomLevel(View.VISIBLE);
       }
@@ -654,9 +711,49 @@ public class CameraActivity extends Activity {
       if (modeMiniature) {
         positioningBackground();
       }
+
     }
   }
-  
+
+  private void manageDisplayButtonsOrientation() {
+    LinearLayout keepPhoto   = (LinearLayout) findViewById(R.id.keepPhoto);
+    ImageButton miniature    = (ImageButton) findViewById(R.id.miniature);
+    ImageButton flash        = (ImageButton) findViewById(R.id.flash);
+    ImageButton shutter      = (ImageButton) findViewById(R.id.capture);
+    ImageButton switchCamera = (ImageButton) findViewById(R.id.switchCamera);
+    SeekBar switchOpacity    = (SeekBar) findViewById(R.id.switchOpacity);
+    ImageView background     = (ImageView) findViewById(R.id.background);
+    TextView orientWarning   = (TextView) findViewById(R.id.orientationWarning);
+    int angle = 0;
+
+    if (!photoTaken) {
+      if(mCurrentOrientation == ActivityInfo.SCREEN_ORIENTATION_PORTRAIT || mCurrentOrientation == ActivityInfo.SCREEN_ORIENTATION_REVERSE_PORTRAIT){
+        mDisableShutter = true;
+
+        orientWarning.setVisibility(View.VISIBLE);
+        background.setVisibility(View.INVISIBLE);
+        shutter.setVisibility(View.INVISIBLE);
+
+      } else if(mCurrentOrientation == ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE || mCurrentOrientation == ActivityInfo.SCREEN_ORIENTATION_REVERSE_LANDSCAPE){
+        mDisableShutter = false;
+
+        orientWarning.setVisibility(View.INVISIBLE);
+        background.setVisibility(View.VISIBLE);
+        shutter.setVisibility(View.VISIBLE);
+
+        if (mCurrentOrientation == ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE) {
+          angle = 90;
+        } else {
+          angle = 270;
+        }
+      }
+
+      shutter.setRotation(angle);
+      flash.setRotation(angle);
+      switchCamera.setRotation(angle);
+    }
+  }
+
   /**
    * Method to get the device default orientation.
    * 
@@ -701,9 +798,11 @@ public class CameraActivity extends Activity {
    * Method to take picture.
    */
   public void takePhoto() {    
-    setRotationPictureTaken();
+//    setRotationPictureTaken();
     final CameraActivity cameraActivityCurrent = this;
-    
+
+    mOrientationTaken = mCurrentOrientation;
+
     // Handles data for jpeg picture
     PictureCallback jpegCallback = new PictureCallback() {
       /**
@@ -719,8 +818,11 @@ public class CameraActivity extends Activity {
         
         // Determine if the picture need to be rotated.
         File filePictureTaken = getFileStreamPath(NAME_FILE_PICTURE_TAKEN);
-        int rotate = TmpFileUtils.determineRotateBasedOnExifFromFilePath(filePictureTaken.getAbsolutePath());
-        if (rotate != 0) {// the picture need to be rotated.
+        // int rotate = TmpFileUtils.determineRotateBasedOnExifFromFilePath(filePictureTaken.getAbsolutePath());
+        int rotate = determineRotateBasedOnOrientation(mOrientationTaken);
+
+        // the picture need to be rotated.
+        if (rotate != 0) {
           // Temporarily storage to use for decoding
           BitmapFactory.Options opt = new BitmapFactory.Options();
           opt.inTempStorage = new byte[16 * 1024];
@@ -730,17 +832,17 @@ public class CameraActivity extends Activity {
             fis = openFileInput(NAME_FILE_PICTURE_TAKEN);
             photoTakenBitmap = BitmapFactory.decodeStream(fis, null, opt);
             fis.close();
-            
+
             Matrix mat = new Matrix();
             mat.postRotate(rotate);
             try {
               photoTakenBitmap = Bitmap.createBitmap(photoTakenBitmap, 0, 0, photoTakenBitmap.getWidth(), photoTakenBitmap.getHeight(), mat, true);
-              
+
               ByteArrayOutputStream stream = new ByteArrayOutputStream();
               photoTakenBitmap.compress(Bitmap.CompressFormat.JPEG, 100, stream);
               byte[] byteArray = stream.toByteArray();
               stream.close();
-              
+
               TmpFileUtils.createTmpFile(cameraActivityCurrent, NAME_FILE_PICTURE_TAKEN, byteArray);
               byteArray = null;
             } catch (OutOfMemoryError oom) {
@@ -753,7 +855,7 @@ public class CameraActivity extends Activity {
           } catch (OutOfMemoryError oom) {
             Log.e("customCamera", "Can't laod the picture.");
           }
-          
+
           photoTakenBitmap = null;
         }
         
@@ -769,7 +871,7 @@ public class CameraActivity extends Activity {
    * @param view The curretnView.
    */
   public void acceptPhoto(View view) {
-    Log.i("9zai","Photo accepted");
+    Log.i("9zai", "Photo accepted");
     final CameraActivity cameraActivityCurrent = this;
     try {
       BitmapFactory.Options opt = new BitmapFactory.Options();
@@ -783,8 +885,8 @@ public class CameraActivity extends Activity {
         photoTakenBitmap = BitmapFactory.decodeByteArray(data, 0, data.length, opt);
         Log.i("9zai","accepted and start to qualify");
         //-----9zai     resize
-        if(targetHeight!=0 && targetWeight!=0){
-          photoTakenBitmap = Bitmap.createScaledBitmap(photoTakenBitmap, targetWeight, targetHeight, true);
+        if(targetHeight!=0 && targetWidth!=0){
+          photoTakenBitmap = Bitmap.createScaledBitmap(photoTakenBitmap, targetWidth, targetHeight, true);
         }
 
         photoTakenBitmap.compress(
@@ -883,17 +985,17 @@ public class CameraActivity extends Activity {
       Bitmap newBitmap = BitmapUtils.generateOptimizeBitmap(this, data);
       
       // rotate the picture of need.
-      File filePictureTaken = getFileStreamPath(NAME_FILE_PICTURE_TAKEN);
-      int rotate = TmpFileUtils.determineRotateBasedOnExifFromFilePath(filePictureTaken.getAbsolutePath());
-      if (rotate != 0) {
-        Matrix mat = new Matrix();
-        mat.postRotate(rotate);
-        try {
-          newBitmap = Bitmap.createBitmap(newBitmap, 0, 0, newBitmap.getWidth(), newBitmap.getHeight(), mat, true);
-        } catch (OutOfMemoryError oom) {
-          Log.e("customCamera", "Can't rotate the picture taken (out of memory).");
-        }
-      }
+//      File filePictureTaken = getFileStreamPath(NAME_FILE_PICTURE_TAKEN);
+//      int rotate = TmpFileUtils.determineRotateBasedOnExifFromFilePath(filePictureTaken.getAbsolutePath());
+//      if (rotate != 0) {
+//        Matrix mat = new Matrix();
+//        mat.postRotate(rotate);
+//        try {
+//          newBitmap = Bitmap.createBitmap(newBitmap, 0, 0, newBitmap.getWidth(), newBitmap.getHeight(), mat, true);
+//        } catch (OutOfMemoryError oom) {
+//          Log.e("customCamera", "Can't rotate the picture taken (out of memory).");
+//        }
+//      }
       
       photoResized.setImageBitmap(newBitmap);
       newBitmap = null;
@@ -904,9 +1006,11 @@ public class CameraActivity extends Activity {
       photoResized.setVisibility(View.GONE);
       photoResized.setImageBitmap(null);
       preview.setVisibility(View.VISIBLE);
+
     }
 
     manageDisplayButtons();
+    manageDisplayButtonsOrientation();
   }
   
   /**
@@ -918,7 +1022,7 @@ public class CameraActivity extends Activity {
     if (getDeviceDefaultOrientation() == Configuration.ORIENTATION_LANDSCAPE) {
       code ++;
     }
-    Log.i("9zai:Rotation",""+code);
+    Log.i("9zai:Rotation", "" + code);
 
     return code == 4 ? 0 : code;
   }
@@ -1116,6 +1220,16 @@ public class CameraActivity extends Activity {
     }
     Parameters params = customCamera.getParameters();
     params.setRotation(redirect);
-    customCamera.setParameters(params);
+//    customCamera.setParameters(params);
   }
+
+  private int determineRotateBasedOnOrientation(int orientation) {
+
+    if (orientation == ActivityInfo.SCREEN_ORIENTATION_REVERSE_LANDSCAPE) {
+      return 180;
+    }
+
+    return 0;
+  }
+
 }
