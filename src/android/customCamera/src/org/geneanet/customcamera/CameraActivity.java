@@ -557,6 +557,8 @@ public class CameraActivity extends Activity {
       }
       imgBackgroundBase64 = null;
       
+      imgBackgroundBitmap = BitmapUtils.rotate(imgBackgroundBitmap, CameraActivity.DEGREE_90);
+
       // set image at the view.
       background.setImageBitmap(imgBackgroundBitmap);
       imgBackgroundBitmap = null;
@@ -1175,6 +1177,8 @@ public class CameraActivity extends Activity {
     setPreviewSize();
     CameraPreview myPreview = new CameraPreview(this, customCamera);
     cameraPreview.addView(myPreview);
+        
+    manageDisplayButtonsOrientation();
   }
   
   /**
