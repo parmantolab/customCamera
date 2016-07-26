@@ -81,6 +81,7 @@ public class CameraActivity extends Activity {
   private int targetHeight = 0;
 
   private Boolean zoom = true;
+  private int quality = 100;
 
   public static final int DEGREE_0 = 0;
   public static final int DEGREE_90 = 90;
@@ -193,6 +194,7 @@ public class CameraActivity extends Activity {
     targetHeight = this.getIntent().getIntExtra("targetHeight",0);
     targetWidth = this.getIntent().getIntExtra("targetWidth",0);
     zoom = this.getIntent().getBooleanExtra("zoom", true);
+    quality = this.getIntent().getIntExtra("quality", 100);
 
     if (opacity) {
       // Event on change opacity.
@@ -731,13 +733,13 @@ public class CameraActivity extends Activity {
         mDisableShutter = true;
 
         orientWarning.setVisibility(View.VISIBLE);
-        background.setVisibility(View.INVISIBLE);
-        shutter.setVisibility(View.INVISIBLE);
+        background.setVisibility(View.GONE);
+        shutter.setVisibility(View.GONE);
 
       } else if(mCurrentOrientation == ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE || mCurrentOrientation == ActivityInfo.SCREEN_ORIENTATION_REVERSE_LANDSCAPE){
         mDisableShutter = false;
 
-        orientWarning.setVisibility(View.INVISIBLE);
+        orientWarning.setVisibility(View.GONE);
         background.setVisibility(View.VISIBLE);
         shutter.setVisibility(View.VISIBLE);
 
@@ -752,6 +754,8 @@ public class CameraActivity extends Activity {
       flash.setRotation(angle);
       switchCamera.setRotation(angle);
     }
+
+    Log.i("9zai", "Shutter Visibility: " + shutter.getVisibility());
   }
 
   /**
@@ -798,11 +802,11 @@ public class CameraActivity extends Activity {
    * Method to take picture.
    */
   public void takePhoto() {    
-//    setRotationPictureTaken();
+
     final CameraActivity cameraActivityCurrent = this;
 
     mOrientationTaken = mCurrentOrientation;
-
+//    setRotationPictureTaken();
     // Handles data for jpeg picture
     PictureCallback jpegCallback = new PictureCallback() {
       /**
@@ -813,9 +817,32 @@ public class CameraActivity extends Activity {
       public void onPictureTaken(byte[] data, Camera camera) {
         // Preview from camera
         photoTaken = true;
-        
+
         TmpFileUtils.createTmpFile(cameraActivityCurrent, NAME_FILE_PICTURE_TAKEN, data);
-        
+
+        // Temporarily storage to use for decoding
+        BitmapFactory.Options opt = new BitmapFactory.Options();
+        opt.inTempStorage = new byte[16 * 1024];
+        Bitmap photoTakenBitmap = BitmapFactory.decodeByteArray(data, 0, data.length, opt);
+
+        if(targetHeight!=0 && targetWidth!=0){
+          photoTakenBitmap = Bitmap.createScaledBitmap(photoTakenBitmap, targetWidth, targetHeight, true);
+
+          try {
+            ByteArrayOutputStream stream = new ByteArrayOutputStream();
+            photoTakenBitmap.compress(Bitmap.CompressFormat.JPEG, 100, stream);
+            byte[] byteArray = stream.toByteArray();
+            stream.close();
+
+            TmpFileUtils.createTmpFile(cameraActivityCurrent, NAME_FILE_PICTURE_TAKEN, byteArray);
+            byteArray = null;
+          } catch (OutOfMemoryError oom) {
+            Log.e("customCamera", "Can't scale the picture (out of memory).");
+          } catch (IOException e) {
+            Log.e("customCamera", "Can't close the file picture. Error message: "+e.getMessage());
+          }
+        }
+
         // Determine if the picture need to be rotated.
         File filePictureTaken = getFileStreamPath(NAME_FILE_PICTURE_TAKEN);
         // int rotate = TmpFileUtils.determineRotateBasedOnExifFromFilePath(filePictureTaken.getAbsolutePath());
@@ -824,19 +851,16 @@ public class CameraActivity extends Activity {
         // the picture need to be rotated.
         if (rotate != 0) {
           // Temporarily storage to use for decoding
-          BitmapFactory.Options opt = new BitmapFactory.Options();
           opt.inTempStorage = new byte[16 * 1024];
           FileInputStream fis;
-          Bitmap photoTakenBitmap;
+
           try {
             fis = openFileInput(NAME_FILE_PICTURE_TAKEN);
             photoTakenBitmap = BitmapFactory.decodeStream(fis, null, opt);
             fis.close();
 
-            Matrix mat = new Matrix();
-            mat.postRotate(rotate);
             try {
-              photoTakenBitmap = Bitmap.createBitmap(photoTakenBitmap, 0, 0, photoTakenBitmap.getWidth(), photoTakenBitmap.getHeight(), mat, true);
+              photoTakenBitmap = BitmapUtils.rotate(photoTakenBitmap, rotate);
 
               ByteArrayOutputStream stream = new ByteArrayOutputStream();
               photoTakenBitmap.compress(Bitmap.CompressFormat.JPEG, 100, stream);
@@ -885,13 +909,13 @@ public class CameraActivity extends Activity {
         photoTakenBitmap = BitmapFactory.decodeByteArray(data, 0, data.length, opt);
         Log.i("9zai","accepted and start to qualify");
         //-----9zai     resize
-        if(targetHeight!=0 && targetWidth!=0){
-          photoTakenBitmap = Bitmap.createScaledBitmap(photoTakenBitmap, targetWidth, targetHeight, true);
-        }
+//        if(targetHeight!=0 && targetWidth!=0){
+//          photoTakenBitmap = Bitmap.createScaledBitmap(photoTakenBitmap, targetWidth, targetHeight, true);
+//        }
 
-        photoTakenBitmap.compress(
-            CompressFormat.JPEG, this.getIntent().getIntExtra("quality", 100), stream);
+        photoTakenBitmap.compress(CompressFormat.JPEG, quality, stream);
         data = stream.toByteArray();
+
         // rewrite the file with the compression.
         TmpFileUtils.createTmpFile(cameraActivityCurrent, NAME_FILE_PICTURE_TAKEN, data);
       } catch (OutOfMemoryError oom) {
@@ -1189,47 +1213,48 @@ public class CameraActivity extends Activity {
    * To set the orientation of the picture taken.
    */
   private void setRotationPictureTaken() {
-    int defaultOrientation = getDeviceDefaultOrientation();
-    int orientationCamera = getOrientationOfCamera();
-    int redirect = CameraActivity.DEGREE_0;
+//    int defaultOrientation = getDeviceDefaultOrientation();
+//    int orientationCamera = getOrientationOfCamera();
+//    int redirect = CameraActivity.DEGREE_0;
+      int rotation = determineRotateBasedOnOrientation(mOrientationTaken);
 
-    switch (getCustomRotation()) {
-      case 0:
-/*        redirect = CameraActivity.DEGREE_90;
-        if (ManagerCamera.currentCameraIsFacingFront() || orientationCamera == 1) {
-          redirect = CameraActivity.DEGREE_270;
-        }   --- This is the situation with protrait   9zai   */
-        break;
-      case 1:
-        redirect = CameraActivity.DEGREE_0;
-        break;
-      case 2:
-        // Only on device with landscape mode by default.
-        if (defaultOrientation == Configuration.ORIENTATION_LANDSCAPE) {
-          redirect = CameraActivity.DEGREE_270;
-        }
-        if (ManagerCamera.currentCameraIsFacingFront() || orientationCamera == 1) {
-          redirect = CameraActivity.DEGREE_90;
-        }
-        break;
-      case 3:
-        redirect = CameraActivity.DEGREE_180;
-        break;
-      default:
-        break;
-    }
+//    switch (getCustomRotation()) {
+//      case 0:
+///*        redirect = CameraActivity.DEGREE_90;
+//        if (ManagerCamera.currentCameraIsFacingFront() || orientationCamera == 1) {
+//          redirect = CameraActivity.DEGREE_270;
+//        }   --- This is the situation with protrait   9zai   */
+//        break;
+//      case 1:
+//        redirect = CameraActivity.DEGREE_0;
+//        break;
+//      case 2:
+//        // Only on device with landscape mode by default.
+//        if (defaultOrientation == Configuration.ORIENTATION_LANDSCAPE) {
+//          redirect = CameraActivity.DEGREE_270;
+//        }
+//        if (ManagerCamera.currentCameraIsFacingFront() || orientationCamera == 1) {
+//          redirect = CameraActivity.DEGREE_90;
+//        }
+//        break;
+//      case 3:
+//        redirect = CameraActivity.DEGREE_180;
+//        break;
+//      default:
+//        break;
+//    }
     Parameters params = customCamera.getParameters();
-    params.setRotation(redirect);
-//    customCamera.setParameters(params);
+    params.setRotation(90);
+    customCamera.setParameters(params);
   }
 
   private int determineRotateBasedOnOrientation(int orientation) {
 
     if (orientation == ActivityInfo.SCREEN_ORIENTATION_REVERSE_LANDSCAPE) {
-      return 180;
+      return CameraActivity.DEGREE_180;
     }
 
-    return 0;
+    return CameraActivity.DEGREE_0;
   }
 
 }
