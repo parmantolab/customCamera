@@ -23,6 +23,9 @@
                 <param name="android-package" value="org.geneanet.customcamera.CameraLauncher"/>
             </feature>
         </config-file>
+        <config-file target="res/values/strings.xml" parent="/resources">
+            <string name="warningPortrait">Please Take in \nLandscape Mode</string>
+        </config-file>
         <config-file target="AndroidManifest.xml" parent="/*">
             <uses-permission android:name="android.permission.CAMERA" />
             <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
