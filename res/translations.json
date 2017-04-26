@@ -1,6 +1,7 @@
 {
     "default": {
         "zoomMin": "-",
-        "zoomMax": "+"
+        "zoomMax": "+",
+        "warningPortrait": "Please Take in \nLandscape Mode"
     }
 }

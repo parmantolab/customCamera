@@ -23,26 +23,7 @@
                 <param name="android-package" value="org.geneanet.customcamera.CameraLauncher"/>
             </feature>
         </config-file>
-        <config-file target="res/values/strings.xml" parent="/resources">
-            <string name="zoomMin">-</string>
-            <string name="zoomMax">+</string>
-            <string name="warningPortrait">Please Take in \nLandscape Mode</string>
-        </config-file>
-        <config-file target="res/values/dimens.xml" parent="/resources">
-            <dimen name="activity_horizontal_margin">16dp</dimen>
-            <dimen name="activity_vertical_margin">16dp</dimen>
-            <dimen name="default_padding">10dp</dimen>
-        </config-file>
-        <config-file target="res/values/colors.xml" parent="/resources">
-            <color name="black">#22000000</color>
-            <color name="white">#ffffff</color>
-        </config-file>
-        <config-file target="res/values/styles.xml" parent="/resources">
-            <style name="AppBaseTheme" parent="android:Theme.Light"></style>
-            <style name="AppTheme" parent="AppBaseTheme"></style>
-        </config-file>
-        <resource-file src="src/android/customCamera/res/values-v11/styles.xml" target="res/values/values-v11/styles.xml"></resource-file>
-        <resource-file src="src/android/customCamera/res/values-v14/styles.xml" target="res/values/values-v14/styles.xml"></resource-file>
+
         <config-file target="AndroidManifest.xml" parent="/*">
             <uses-permission android:name="android.permission.CAMERA" />
             <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
