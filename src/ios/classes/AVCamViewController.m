@@ -28,6 +28,7 @@ static void *SessionRunningAndDeviceAuthorizedContext = &SessionRunningAndDevice
 
 @property (nonatomic, weak) IBOutlet UIImageView *imgSmallThumbNail;
 @property (nonatomic, weak) IBOutlet UIImageView *imgBigThumbNail;
+@property (weak, nonatomic) IBOutlet UIImageView *imgBorder;
 
 
 - (IBAction)onTapThumb:(id)sender;
@@ -190,7 +191,34 @@ static void *SessionRunningAndDeviceAuthorizedContext = &SessionRunningAndDevice
     [self.view addSubview:volumeView];
     //-----------------------
     
+    [self updateBorder];
+    
 }
+
+- (void)updateBorder {
+    
+    UIInterfaceOrientation orientation = [[UIDevice currentDevice] orientation];
+    
+    if(UIDeviceOrientationIsPortrait(orientation)){
+        CGFloat width = [UIScreen mainScreen].bounds.size.height;
+        CGFloat height = [UIScreen mainScreen].bounds.size.width;
+        CGFloat borderHeight = height * 0.7;
+        CGFloat borderWidth = borderHeight * 1.5;
+        [self.imgBorder setFrame:CGRectMake((width - borderWidth)/2,height * 0.15, borderWidth,  borderHeight)];
+    }
+    else{
+        CGFloat width = [UIScreen mainScreen].bounds.size.width;
+        CGFloat height = [UIScreen mainScreen].bounds.size.height;
+        CGFloat borderHeight = height * 0.7;
+        CGFloat borderWidth = borderHeight * 1.5;
+        [self.imgBorder setFrame:CGRectMake((width - borderWidth)/2,height * 0.15, borderWidth,  borderHeight)];
+    }
+
+
+}
+
+
+
 //9zai volumeChange--------------------------------------
 - (void)volumeChange:(NSNotification *)notification{
 }
@@ -213,13 +241,8 @@ static void *SessionRunningAndDeviceAuthorizedContext = &SessionRunningAndDevice
         }]];
         [[self session] startRunning];
         
-        //9zai volume button handler-----
-        [[NSNotificationCenter defaultCenter]
-         addObserver:self
-         selector:@selector(snapStillImage:)
-         name:@"AVSystemController_SystemVolumeDidChangeNotification"
-         object:nil];
-        //--------
+        
+        
     });
 }
 
@@ -360,6 +383,12 @@ static void *SessionRunningAndDeviceAuthorizedContext = &SessionRunningAndDevice
                 break;
         }
 
+        
+        CGContextRef context = UIGraphicsGetCurrentContext();
+        CGContextSetRGBFillColor (context, 1, 0, 0, 1);
+        CGContextFillRect (context, CGRectMake (0, 0, 200, 300 ));
+        
+        
         AVCaptureDevice *videoDevice = [AVCamViewController deviceWithMediaType:AVMediaTypeVideo preferringPosition:preferredPosition];
         AVCaptureDeviceInput *videoDeviceInput = [AVCaptureDeviceInput deviceInputWithDevice:videoDevice error:nil];
 
@@ -553,6 +582,8 @@ static void *SessionRunningAndDeviceAuthorizedContext = &SessionRunningAndDevice
     }];
 }
 
+
+
 - (IBAction)onTapThumb:(id)sender {
     UIButton *btnThumb = (UIButton *)sender;
     self.imgSmallThumbNail.hidden = btnThumb.selected;
@@ -694,7 +725,7 @@ static void *SessionRunningAndDeviceAuthorizedContext = &SessionRunningAndDevice
     self.btnBigDeletePicture.hidden = self.btnDeletePicture.hidden = NO;
     self.btnBigSaveImage.hidden = self.btnSaveImage.hidden = NO;
 
-    self.stillButton.hidden =  self.btnFlash.hidden = self.cameraButton.hidden = YES;
+    self.imgBorder.hidden = self.stillButton.hidden =  self.btnFlash.hidden = self.cameraButton.hidden = YES;
     frameBtnThumb = self.btnThumb.frame;
     self.btnThumb.frame = self.btnFlash.frame;
 
@@ -712,7 +743,7 @@ static void *SessionRunningAndDeviceAuthorizedContext = &SessionRunningAndDevice
 
 
     self.btnThumb.frame = frameBtnThumb;
-    self.stillButton.hidden =  self.btnFlash.hidden  = NO;
+    self.imgBorder.hidden = self.stillButton.hidden =  self.btnFlash.hidden  = NO;
 
     //control camera button
     self.cameraButton.hidden = !params.bSwitchCamera;
