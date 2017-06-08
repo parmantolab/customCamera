@@ -28,6 +28,7 @@ static void *SessionRunningAndDeviceAuthorizedContext = &SessionRunningAndDevice
 
 @property (nonatomic, weak) IBOutlet UIImageView *imgSmallThumbNail;
 @property (nonatomic, weak) IBOutlet UIImageView *imgBigThumbNail;
+@property (weak, nonatomic) IBOutlet UIImageView *imgBorder;
 
 
 - (IBAction)onTapThumb:(id)sender;
@@ -86,7 +87,7 @@ static void *SessionRunningAndDeviceAuthorizedContext = &SessionRunningAndDevice
 
 - (void)viewDidLoad {
     [super viewDidLoad];
- 
+
     // Create the AVCaptureSession
     AVCaptureSession *session = [[AVCaptureSession alloc] init];
     [self setSession:session];
@@ -176,23 +177,56 @@ static void *SessionRunningAndDeviceAuthorizedContext = &SessionRunningAndDevice
         }
     });
     [self initialize];
-    
+
     //9zai to hide the volume button---------
     // these 4 lines of code tell the system that "this app needs to play sound/music"
     AVAudioPlayer* temp = [[AVAudioPlayer alloc] initWithContentsOfURL:[NSURL fileURLWithPath:[[[NSBundle mainBundle] resourcePath] stringByAppendingPathComponent:@"photoshutter.wav"]] error:NULL];
     [temp prepareToPlay];
     [temp stop];
-    
+
     //make MPVolumeView Offscreen
     CGRect frame = CGRectMake(-1000, -1000, 100, 100);
     MPVolumeView *volumeView = [[MPVolumeView alloc] initWithFrame:frame];
     [volumeView sizeToFit];
     [self.view addSubview:volumeView];
     //-----------------------
-    
+
+    [self updateBorder];
+
 }
+
+- (void)updateBorder {
+
+    UIInterfaceOrientation orientation = [[UIDevice currentDevice] orientation];
+
+    if(UIDeviceOrientationIsPortrait(orientation)){
+        CGFloat width = [UIScreen mainScreen].bounds.size.height;
+        CGFloat height = [UIScreen mainScreen].bounds.size.width;
+        CGFloat borderHeight = height * 0.7;
+        CGFloat borderWidth = borderHeight * 1.5;
+        [self.imgBorder setFrame:CGRectMake((width - borderWidth)/2,height * 0.15, borderWidth,  borderHeight)];
+    }
+    else{
+        CGFloat width = [UIScreen mainScreen].bounds.size.width;
+        CGFloat height = [UIScreen mainScreen].bounds.size.height;
+        CGFloat borderHeight = height * 0.7;
+        CGFloat borderWidth = borderHeight * 1.5;
+        [self.imgBorder setFrame:CGRectMake((width - borderWidth)/2,height * 0.15, borderWidth,  borderHeight)];
+    }
+
+
+}
+
+
+
 //9zai volumeChange--------------------------------------
 - (void)volumeChange:(NSNotification *)notification{
+    if(notification.userInfo != nil){
+        NSString *volumeChangeType = [notification.userInfo valueForKey:@"AVSystemController_AudioVolumeChangeReasonNotificationParameter"];
+        if (volumeChangeType != nil && [volumeChangeType isEqual: @"ExplicitVolumeChange"]) {
+            [self takeStillImage];
+        }
+    }
 }
 
 - (void)viewWillAppear:(BOOL)animated {
@@ -212,16 +246,19 @@ static void *SessionRunningAndDeviceAuthorizedContext = &SessionRunningAndDevice
             });
         }]];
         [[self session] startRunning];
-        
+
         //9zai volume button handler-----
-        [[NSNotificationCenter defaultCenter]
-         addObserver:self
-         selector:@selector(snapStillImage:)
-         name:@"AVSystemController_SystemVolumeDidChangeNotification"
-         object:nil];
+                [[NSNotificationCenter defaultCenter]
+                 addObserver:self
+                 selector:@selector(volumeChange:)
+                 name:@"AVSystemController_SystemVolumeDidChangeNotification"
+                 object:nil];
         //--------
+
     });
 }
+
+
 
 - (void)viewDidDisappear:(BOOL)animated {
     dispatch_async([self sessionQueue], ^{
@@ -234,7 +271,7 @@ static void *SessionRunningAndDeviceAuthorizedContext = &SessionRunningAndDevice
         [self removeObserver:self forKeyPath:@"stillImageOutput.capturingStillImage" context:CapturingStillImageContext];
         [self removeObserver:self forKeyPath:@"movieFileOutput.recording" context:RecordingContext];
     });
-    
+
     //9zai close volume listner
     [[NSNotificationCenter defaultCenter]
      removeObserver:self
@@ -360,6 +397,12 @@ static void *SessionRunningAndDeviceAuthorizedContext = &SessionRunningAndDevice
                 break;
         }
 
+
+        CGContextRef context = UIGraphicsGetCurrentContext();
+        CGContextSetRGBFillColor (context, 1, 0, 0, 1);
+        CGContextFillRect (context, CGRectMake (0, 0, 200, 300 ));
+
+
         AVCaptureDevice *videoDevice = [AVCamViewController deviceWithMediaType:AVMediaTypeVideo preferringPosition:preferredPosition];
         AVCaptureDeviceInput *videoDeviceInput = [AVCaptureDeviceInput deviceInputWithDevice:videoDevice error:nil];
 
@@ -434,7 +477,31 @@ static void *SessionRunningAndDeviceAuthorizedContext = &SessionRunningAndDevice
             }
         }];
     });
+    [self takeStillImage];
 }
+
+- (void) takeStillImage{
+    dispatch_async([self sessionQueue], ^{
+        // Update the orientation on the still image output video connection before capturing.
+        [[[self stillImageOutput] connectionWithMediaType:AVMediaTypeVideo] setVideoOrientation:[[(AVCaptureVideoPreviewLayer *)[[self previewView] layer] connection] videoOrientation]];
+
+        // Flash set to Auto for Still Capture
+        [AVCamViewController setFlashMode:AVCaptureFlashModeAuto forDevice:[[self videoDeviceInput] device]];
+
+        // Capture a still image.
+        [[self stillImageOutput] captureStillImageAsynchronouslyFromConnection:[[self stillImageOutput] connectionWithMediaType:AVMediaTypeVideo] completionHandler: ^(CMSampleBufferRef imageDataSampleBuffer, NSError *error) {
+            if (imageDataSampleBuffer) {
+                NSData *imageData = [AVCaptureStillImageOutput jpegStillImageNSDataRepresentation:imageDataSampleBuffer];
+                capturedImage = [[UIImage alloc] initWithData:imageData];
+                capturedImageData = imageData;
+
+                [self takePicture];
+            }
+        }];
+    });
+
+}
+
 
 - (IBAction)focusAndExposeTap:(UIGestureRecognizer *)gestureRecognizer {
     CGPoint devicePoint = [(AVCaptureVideoPreviewLayer *)[[self previewView] layer] captureDevicePointOfInterestForPoint:[gestureRecognizer locationInView:[gestureRecognizer view]]];
@@ -552,6 +619,8 @@ static void *SessionRunningAndDeviceAuthorizedContext = &SessionRunningAndDevice
         }
     }];
 }
+
+
 
 - (IBAction)onTapThumb:(id)sender {
     UIButton *btnThumb = (UIButton *)sender;
@@ -694,7 +763,7 @@ static void *SessionRunningAndDeviceAuthorizedContext = &SessionRunningAndDevice
     self.btnBigDeletePicture.hidden = self.btnDeletePicture.hidden = NO;
     self.btnBigSaveImage.hidden = self.btnSaveImage.hidden = NO;
 
-    self.stillButton.hidden =  self.btnFlash.hidden = self.cameraButton.hidden = YES;
+    self.imgBorder.hidden = self.stillButton.hidden =  self.btnFlash.hidden = self.cameraButton.hidden = YES;
     frameBtnThumb = self.btnThumb.frame;
     self.btnThumb.frame = self.btnFlash.frame;
 
@@ -712,7 +781,7 @@ static void *SessionRunningAndDeviceAuthorizedContext = &SessionRunningAndDevice
 
 
     self.btnThumb.frame = frameBtnThumb;
-    self.stillButton.hidden =  self.btnFlash.hidden  = NO;
+    self.imgBorder.hidden = self.stillButton.hidden =  self.btnFlash.hidden  = NO;
 
     //control camera button
     self.cameraButton.hidden = !params.bSwitchCamera;
