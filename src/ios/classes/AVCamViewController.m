@@ -704,7 +704,7 @@ static void *SessionRunningAndDeviceAuthorizedContext = &SessionRunningAndDevice
     else {
         [self.btnFlash setImage:[UIImage imageNamed:@"icon_flash_auto.png"] forState:UIControlStateNormal];
         self.btnFlash.tag = 0;
-
+        
         if ([device hasTorch] && [device hasFlash]) {
             [device lockForConfiguration:nil];
             [device setTorchMode:NO];
