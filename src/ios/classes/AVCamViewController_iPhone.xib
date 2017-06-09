@@ -43,7 +43,7 @@
                             <rect key="frame" x="0.0" y="0.0" width="375" height="667"/>
                             <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                         </imageView>
-                        <imageView userInteractionEnabled="NO" contentMode="scaleAspectFit" horizontalHuggingPriority="251" verticalHuggingPriority="251" image="sample.png" id="GAn-hK-ROm">
+                        <imageView userInteractionEnabled="NO" contentMode="scaleAspectFit" horizontalHuggingPriority="251" verticalHuggingPriority="251" id="GAn-hK-ROm">
                             <rect key="frame" x="0.0" y="0.0" width="375" height="667"/>
                             <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                         </imageView>
@@ -162,7 +162,7 @@
                             <rect key="frame" x="254" y="318.5" width="200" height="31"/>
                             <autoresizingMask key="autoresizingMask" flexibleMinX="YES" flexibleMinY="YES" flexibleMaxY="YES"/>
                         </slider>
-                        <imageView userInteractionEnabled="NO" contentMode="scaleToFill" horizontalHuggingPriority="251" verticalHuggingPriority="251" misplaced="YES" image="cameraBorder.png" id="ye3-0g-rIk">
+                        <imageView userInteractionEnabled="NO" contentMode="scaleToFill" horizontalHuggingPriority="251" verticalHuggingPriority="251" misplaced="YES" image="ß" id="ye3-0g-rIk">
                             <rect key="frame" x="69" y="82" width="234" height="138"/>
                             <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
                         </imageView>
@@ -177,7 +177,6 @@
         </view>
     </objects>
     <resources>
-        <image name="cameraBorder.png" width="441" height="248"/>
         <image name="icon_back.png" width="60" height="60"/>
         <image name="icon_capture.png" width="128" height="128"/>
         <image name="icon_capture_pressed.png" width="128" height="128"/>
@@ -188,6 +187,7 @@
         <image name="icon_min.png" width="60" height="60"/>
         <image name="icon_submit.png" width="60" height="60"/>
         <image name="sample.png" width="483" height="263"/>
+        <image name="ß" width="16" height="16"/>
     </resources>
     <simulatedMetricsContainer key="defaultSimulatedMetrics">
         <simulatedStatusBarMetrics key="statusBar"/>

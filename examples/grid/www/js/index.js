@@ -1,49 +1,24 @@
-function getGrid(inverse) {
-    var format = "image/png";
-    var width = window.innerWidth * devicePixelRatio;
-    var height = window.innerHeight * devicePixelRatio;
-    if (inverse) {
-        width = window.innerHeight * devicePixelRatio;
-        height = window.innerWidth * devicePixelRatio; 
-    }
-    var widthInterval = width * 0.25;
-    var heightInterval = height * 0.25;
-    var x = widthInterval;
-    var y = heightInterval;
 
-    var canvas = document.getElementById('my-canvas');;
-    canvas.width = width;
-    canvas.height = height;
-    
-    var ctx = canvas.getContext("2d");
 
-    ctx.beginPath();
-
-    while (x < width) {
-        ctx.moveTo(x, 0);
-        ctx.lineTo(x, height);
-        x += widthInterval;
-    }
-
-    while (y < height) {
-        ctx.moveTo(0, y);
-        ctx.lineTo(width, y);
-        y += heightInterval;
-    }
-    ctx.stroke();
-
-    ctx.closePath();
-
-    var base64 = canvas.toDataURL(format);
-
-    return base64.replace(/data:[^\/]*\/[^\,]*,/, "");
+function _encodeBase64FromImg(picture, format) {
+  format = format ? format : "image/jpg";
+  
+  var canvas = document.createElement("canvas");
+  canvas.width = picture.naturalWidth;
+  canvas.height = picture.naturalHeight;
+  
+  var ctx = canvas.getContext("2d");
+  ctx.drawImage(picture, 0, 0);
+  
+  var base64 = canvas.toDataURL(format);
+  
+  return base64.replace(/data:[^\/]*\/[^\,]*,/, "");
 };
 
 document.getElementById("start-camera").onclick = function() {
     navigator.GeneanetCustomCamera.startCamera(
         {
-            imgBackgroundBase64: getGrid(),
-            imgBackgroundBase64OtherOrientation: getGrid(true),
+            imgBackgroundBase64: _encodeBase64FromImg(document.querySelector("#img")),
             opacity: false,
             miniature: false
         },

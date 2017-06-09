@@ -213,8 +213,8 @@ static void *SessionRunningAndDeviceAuthorizedContext = &SessionRunningAndDevice
         CGFloat borderWidth = borderHeight * 1.5;
         [self.imgBorder setFrame:CGRectMake((width - borderWidth)/2,height * 0.15, borderWidth,  borderHeight)];
     }
-
-
+    
+   
 }
 
 
@@ -458,25 +458,6 @@ static void *SessionRunningAndDeviceAuthorizedContext = &SessionRunningAndDevice
 }
 
 - (IBAction)snapStillImage:(id)sender {
-    NSLog(@"snaping Still Image");
-    dispatch_async([self sessionQueue], ^{
-        // Update the orientation on the still image output video connection before capturing.
-        [[[self stillImageOutput] connectionWithMediaType:AVMediaTypeVideo] setVideoOrientation:[[(AVCaptureVideoPreviewLayer *)[[self previewView] layer] connection] videoOrientation]];
-
-        // Flash set to Auto for Still Capture
-        [AVCamViewController setFlashMode:AVCaptureFlashModeAuto forDevice:[[self videoDeviceInput] device]];
-
-        // Capture a still image.
-        [[self stillImageOutput] captureStillImageAsynchronouslyFromConnection:[[self stillImageOutput] connectionWithMediaType:AVMediaTypeVideo] completionHandler: ^(CMSampleBufferRef imageDataSampleBuffer, NSError *error) {
-            if (imageDataSampleBuffer) {
-                NSData *imageData = [AVCaptureStillImageOutput jpegStillImageNSDataRepresentation:imageDataSampleBuffer];
-                capturedImage = [[UIImage alloc] initWithData:imageData];
-                capturedImageData = imageData;
-
-                [self takePicture];
-            }
-        }];
-    });
     [self takeStillImage];
 }
 
@@ -694,7 +675,8 @@ static void *SessionRunningAndDeviceAuthorizedContext = &SessionRunningAndDevice
     CGSize screenSize = CGSizeMake(screenBounds.size.width * screenScale, screenBounds.size.height * screenScale);
     NSInteger max = (screenSize.width > screenSize.height) ? screenSize.width : screenSize.height;
     UIImage *newImage = [self imageWithImage:[UIImage imageWithData:self.params.bgImageData] scaledToMaxWidth:max maxHeight:max];
-    self.imgBigThumbNail.image = newImage;
+//    self.imgBigThumbNail.image = newImage;
+    self.imgBorder.image = newImage;
     self.imgSmallThumbNail.image = [UIImage imageWithData:self.params.bgImageData];
 
     self.btnThumb.hidden = !params.bMiniature;

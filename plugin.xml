@@ -81,7 +81,6 @@
         <resource-file src="src/ios/image/icon_min.png" />
         <resource-file src="src/ios/image/icon_submit.png" />
         <resource-file src="src/ios/image/sample.png" />
-        <resource-file src="src/ios/image/cameraBorder.png" />
 
         <framework src="CoreGraphics.framework" weak="true" />
         <framework src="AssetsLibrary.framework" weak="true" />
